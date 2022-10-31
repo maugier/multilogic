@@ -1,4 +1,5 @@
 use varisat::{CnfFormula, ExtendFormula, Var, Lit};
+use itertools::Itertools;
 
 macro_rules! ary {
     ($f:expr ; $size:literal) => { [(); $size].map(|_| $f) };
@@ -84,37 +85,13 @@ impl BaseGrid {
     fn add_constraint<'c>(&mut self, constraint: &'c Constraint) -> Result<(), LogicalError<'c>> {
         
         let vars: Vec<_> = constraint.cells.iter().map(|(x,y)| self.vars[x.0 as usize][y.0 as usize]).collect();
-        
-        let mut terms: Vec<Vec<Lit>> = vec![];
 
-        match constraint.op {
-            Op::Plus => { todo!() },
-            Op::Minus => {
-                let [v1, v2] = &vars[..] else { return Err(LogicalError::UnsupportedConstraint(constraint)) };
-                for x1 in 0..6 {
-                    let x1_n = x1 as u8 + 1;
-                    for x2 in 0..6 {
-                        let x2_n = x2 as u8 + 1;
-                        if x1_n + constraint.result == x2_n || x2_n + constraint.result == x1_n {
-                            terms.push(vec![v1[x1].lit(true), v2[x2].lit(true)])
-                        }
-                    }
-                }
-            },
-            Op::Times => todo!(),
-            Op::Div => {
-                let [v1, v2] = &vars[..] else { return Err(LogicalError::UnsupportedConstraint(constraint)) };
-                for x1 in 0..6 {
-                    let x1_n = x1 as u8 + 1;
-                    for x2 in 0..6 {
-                        let x2_n = x2 as u8 + 1;
-                        if x1_n * constraint.result == x2_n || x2_n * constraint.result == x1_n {
-                            terms.push(vec![v1[x1].lit(true), v2[x2].lit(true)])
-                        }
-                    }
-                }
-            },
-        };
+        let terms = match constraint.op {
+            Op::Plus => make_associative_constraint(&vars[..], |a,b| a+b, 0, constraint.result as u16),
+            Op::Minus => make_binary_constraint(&vars[..], |a,b| a + constraint.result == b || b + constraint.result == a),
+            Op::Times => make_associative_constraint(&vars[..], |a,b| a*b, 1, constraint.result as u16),
+            Op::Div => make_binary_constraint(&vars[..], |a,b| a * constraint.result == b || b * constraint.result == a),
+        }.ok_or(LogicalError::ImpossibleConstraint(constraint))?;
 
         if terms.is_empty() { return Err(LogicalError::ImpossibleConstraint(constraint))}
 
@@ -145,5 +122,51 @@ impl BaseGrid {
         self.formula.add_clause(&helpers);
 
     }
+
+}
+
+/// Generate a DNF constraint for an arithmetic operation
+/// Returns None if the number of variables is not exactly 2
+fn make_binary_constraint<F>(vars: &[[Var; 6]], op: F) -> Option<Vec<Vec<Lit>>> 
+    where F: Fn(u8,u8) -> bool
+{
+
+    let [v1, v2] = &vars[..] else { return None };
+
+    let mut terms = vec![];
+
+    for x1 in 0..6 {
+        let x1_n = x1 as u8 + 1;
+        for x2 in 0..6 {
+            let x2_n = x2 as u8 + 1;
+            if op(x1_n, x2_n) {
+                terms.push(vec![v1[x1].lit(true), v2[x2].lit(true)])
+            }
+        }
+    }
+
+    Some(terms)
+
+}
+
+/// Generate an associative constraint between the given set of vars
+/// 
+fn make_associative_constraint(vars: &[[Var; 6]], op: fn(u16,u16) -> u16, z: u16, r: u16) -> Option<Vec<Vec<Lit>>> {
+
+    let mut terms = vec![];
+
+    for chosen in vars.iter().map(|_| 0..6).multi_cartesian_product() {
+        if chosen.iter().map(|&x| x as u16 + 1).fold(z, op) == r {
+            let term = chosen.iter()
+                .zip(vars)
+                .map(|(&x, &v)| v[x].lit(true))
+                .collect();
+            terms.push(term);
+        }
+    }
+
+    if terms.is_empty() { return None }
+
+    Some(terms)
 
 }
