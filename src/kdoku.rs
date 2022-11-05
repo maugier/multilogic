@@ -43,6 +43,20 @@ pub struct Constraint {
     pub cells: Vec<(usize, usize)>
 }
 
+
+macro_rules! op {
+    (+) => { $crate::kdoku::Op::Plus };
+    (-) => { $crate::kdoku::Op::Minus };
+    (*) => { $crate::kdoku::Op::Times };
+    (/) => { $crate::kdoku::Op::Div };
+
+}
+
+#[macro_export]
+macro_rules! constraints {
+    ( $( $r:tt $op:tt [ $( $c:expr ),* ], )* ) => { vec![ $( $crate::kdoku::Constraint { op: op!($op), result: $r, cells: vec![ $( $c ),* ] } ),* ] };
+}
+
 impl std::fmt::Display for Solution {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         for line in &self.0 {
@@ -221,21 +235,21 @@ fn make_associative_constraint(vars: &[[Var; 6]], op: fn(u16,u16) -> u16, z: u16
 #[test]
 fn test_sample_grid() {
 
-    let constraints = vec![
-        Constraint { op: Op::Plus,  result: 10, cells: vec![ (0,0), (1,0) ] },
-        Constraint { op: Op::Plus,  result: 11, cells: vec![ (2,0), (3,0), (4,0), (5,0)]},
-        Constraint { op: Op::Plus,  result:  7, cells: vec![ (0,1), (0,2) ]},
-        Constraint { op: Op::Plus,  result: 18, cells: vec![ (1,1), (1,2), (2,1), (3,1)]},
-        Constraint { op: Op::Plus,  result:  6, cells: vec![ (4,1), (4,2), (4,3) ]},
-        Constraint { op: Op::Plus,  result:  7, cells: vec![ (5,1), (5,2)]},
-        Constraint { op: Op::Times, result: 30, cells: vec![ (0,3), (1,3), (2,2), (2,3)]},
-        Constraint { op: Op::Plus,  result:  8, cells: vec![ (3,2), (3,3)]},
-        Constraint { op: Op::Times, result: 24, cells: vec![ (5,3), (5,4)]},
-        Constraint { op: Op::Div,   result:  2, cells: vec![ (0,4), (0,5)]},
-        Constraint { op: Op::Plus,  result:  2, cells: vec![ (1,4)]},
-        Constraint { op: Op::Plus,  result: 13, cells: vec![ (1,5), (2,4), (2,5), (3,5)]},
-        Constraint { op: Op::Minus, result:  1, cells: vec![ (3,4), (4,4)]},
-        Constraint { op: Op::Minus, result:  3, cells: vec![ (4,5), (5,5)]},
+    let constraints = constraints![
+        10+ [ (0,0), (1,0) ],
+        11+ [ (2,0), (3,0), (4,0), (5,0)],
+         7+ [ (0,1), (0,2) ],
+         6+ [ (4,1), (4,2), (4,3) ],
+        18+ [ (1,1), (1,2), (2,1), (3,1) ],
+         7+ [ (5,1), (5,2) ],
+        30* [ (0,3), (1,3), (2,2), (2,3) ],
+         8+ [ (3,2), (3,3) ],
+        24* [ (5,3), (5,4) ],
+         2/ [ (0,4), (0,5) ],
+         2+ [ (1,4) ],
+        13+ [ (1,5), (2,4), (2,5), (3,5) ],
+         1- [ (3,4), (4,4) ],
+         3- [ (4,5), (5,5) ],
 
     ];
 
