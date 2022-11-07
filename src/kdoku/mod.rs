@@ -1,6 +1,10 @@
+use std::str::FromStr;
+
 use varisat::{CnfFormula, ExtendFormula, Var, Lit, Solver, solver::SolverError};
 use itertools::Itertools;
 use thiserror::Error;
+
+pub mod parse;
 
 macro_rules! ary {
     ($f:expr ; $size:literal) => { [(); $size].map(|_| $f) };
@@ -12,7 +16,7 @@ pub struct U6(u8);
 #[derive(Clone,Copy,Debug)]
 pub struct Solution([[U6; 6]; 6]);
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Op { Plus, Minus, Times, Div }
 
 #[derive(Debug, Error)]
@@ -36,25 +40,38 @@ pub struct BaseGrid {
     vars: [[[Var; 6]; 6]; 6],
 }
 
-#[derive(Debug)]
+#[derive(Clone,Debug, PartialEq, Eq)]
 pub struct Constraint {
     pub op: Op,
     pub result: u8,
     pub cells: Vec<(usize, usize)>
 }
 
-
+#[macro_export]
 macro_rules! op {
     (+) => { $crate::kdoku::Op::Plus };
     (-) => { $crate::kdoku::Op::Minus };
     (*) => { $crate::kdoku::Op::Times };
     (/) => { $crate::kdoku::Op::Div };
-
 }
 
 #[macro_export]
 macro_rules! constraints {
     ( $( $r:tt $op:tt [ $( $c:expr ),* ], )* ) => { vec![ $( $crate::kdoku::Constraint { op: op!($op), result: $r, cells: vec![ $( $c ),* ] } ),* ] };
+}
+
+impl FromStr for Op {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "+" => Ok(Op::Plus),
+            "-" => Ok(Op::Minus),
+            "*" => Ok(Op::Times),
+            "/" => Ok(Op::Div),
+            _   => Err(()),
+        }
+    }
 }
 
 impl std::fmt::Display for Solution {
@@ -229,6 +246,8 @@ fn make_associative_constraint(vars: &[[Var; 6]], op: fn(u16,u16) -> u16, z: u16
     Some(terms)
 
 }
+
+
 
 
 
