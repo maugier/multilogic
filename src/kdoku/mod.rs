@@ -4,18 +4,24 @@ use varisat::{CnfFormula, ExtendFormula, Var, Lit, Solver, solver::SolverError};
 use itertools::Itertools;
 use thiserror::Error;
 
+/// Text format for representing K-dokus
 pub mod parse;
 
+/// Initialize an array with a closure called multiple times. With the 
+/// default `[v; n]` notation, Rust will evaluate `v` once and clone the result.
 macro_rules! ary {
     ($f:expr ; $size:literal) => { [(); $size].map(|_| $f) };
 }
 
+/// An integer between 1 and 6
 #[derive(Clone,Copy,Debug)]
 pub struct U6(u8);
 
+/// A solution is a 6x6 matrix of integers between 1 and 6
 #[derive(Clone,Copy,Debug)]
 pub struct Solution([[U6; 6]; 6]);
 
+/// Possible operators for the hints
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Op { Plus, Minus, Times, Div }
 
@@ -34,12 +40,16 @@ pub enum LogicalError<'e> {
     SolverError(#[from] SolverError),
 }
 
+/// A SAT representation of the puzzle.
+/// vars[x][y][z] is true iff the cell in position (x,y) contains z
 #[derive(Clone, Debug)]
 pub struct BaseGrid {
     formula: CnfFormula,
     vars: [[[Var; 6]; 6]; 6],
 }
 
+/// A K-Doku constraint is a list of cells. The fold of the cell values over
+/// the operator must equal a given result.
 #[derive(Clone,Debug, PartialEq, Eq)]
 pub struct Constraint {
     pub op: Op,
@@ -55,6 +65,7 @@ macro_rules! op {
     (/) => { $crate::kdoku::Op::Div };
 }
 
+/// For embedding K-Doku puzzles in rust code
 #[macro_export]
 macro_rules! constraints {
     ( $( $r:tt $op:tt [ $( $c:expr ),* ], )* ) => { vec![ $( $crate::kdoku::Constraint { op: op!($op), result: $r, cells: vec![ $( $c ),* ] } ),* ] };
@@ -88,12 +99,14 @@ impl std::fmt::Display for Solution {
 
 impl BaseGrid {
 
+    /// Creates a new puzzle instance and initialize the universal SAT constraints for the problem
     pub fn new() -> Self {
 
         let mut f = CnfFormula::new();
 
         let vars = ary![ ary![ ary![f.new_var(); 6]; 6]; 6];
     
+        // Loop over every location
         for x in 0..6 {
             for y in 0..6 {
     
@@ -114,19 +127,22 @@ impl BaseGrid {
             }
         }
     
-        //Each row has each number
+        //Each row contains each number at least once
         for x in 0..6 {
             for v in 0..6 {
                 f.add_clause(&vars[x].map(|vs| vs[v].lit(true )))
             }
         }
     
-        //Each column has each number
+        //Each column contains each number at least once
         for y in 0..6 {
             for v in 0..6 {
                 f.add_clause(&vars.map(|vs| vs[y][v].lit(true)))
             }
         }
+
+        //No need to have a constraint for not having the same value twice in a row or column
+        //it is implied from the two previous constraints by the pigeonhole principle
     
         BaseGrid { formula: f, vars }
 
