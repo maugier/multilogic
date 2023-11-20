@@ -18,23 +18,6 @@ impl Problem {
         Matrix::new(grid, shape).map(Self)
     }
 
-    pub fn neighbors(&self, pos: (usize, usize)) -> Vec<(usize,usize)> {
-        let (x,y) = pos;
-        let (h, w) = self.0.shape();
-        let mut neighs = Vec::with_capacity(9);
-
-        let mut row = |x| {
-            if y > 0 { neighs.push((x, y-1)) };
-            neighs.push((x, y));
-            if y+1 < w { neighs.push((x, y+1))};
-        };
-
-        if x > 0 { row(x-1) };
-        row(x);
-        if x+1 < h { row(x+1) };
-        neighs
-    }
-
     pub fn solve(&self) -> Option<Solution> {
         let shape = self.0.shape();
 
@@ -47,7 +30,7 @@ impl Problem {
             if let Some(k) = self.0[x][y] {
 
                 let mut clause = vec![];
-                let neighs = self.neighbors((x,y));
+                let neighs = self.0.neighbors((x,y));
 
                 choose(neighs.len(), k as usize, |bitmap| {
                     let alt = neighs.iter()
