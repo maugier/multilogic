@@ -1,7 +1,9 @@
-use std::io::stdin;
+use std::io::{stdin, Read};
 
 use multilogic::*;
 use clap::Parser;
+use anyhow::Result;
+use termcolor::BufferWriter;
 
 #[derive(Parser)]
 #[command()]
@@ -17,27 +19,44 @@ enum Command {
     Voisimage,
 }
 
-fn main() {
+fn main() -> Result<()> {
     use Command::*;
     match Command::parse() {
         KDoku => kdoku(),
-        _ => todo!("Not implemented yet")
+        Stars => stars(),
+        _ => panic!("game not yet implemented")
     }
 
 }
 
-fn kdoku() {
+fn kdoku() -> Result<()> {
+    use kdoku::*;
     let constraints: Vec<kdoku::Constraint> = stdin()
         .lines()
         .map(|l| l.unwrap())
         .filter(|l| l.trim() != "")
-        .map(|l| kdoku::parse::constraint(&l).unwrap().1)
+        .map(|l| kdoku::parse::constraint(&l).expect("parse error").1)
         .collect();
 
-    let Ok(solution) = kdoku::BaseGrid::new().solve(&constraints[..]) else {
-        eprintln!("Grid is not solvable");
-        return;
-    };
-
+    let grid = BaseGrid::new();
+    let solution = grid.solve(&constraints[..]).expect("unsolvable");
     println!("{}", solution);
+    Ok(())
+}
+
+fn stars() -> Result<()> {
+    use stars::*;
+    let mut buf = vec![];
+    stdin().lock().read_to_end(&mut buf)?;
+    let buf = std::str::from_utf8(&buf)?;
+
+    let problem: Problem = buf.parse()?;
+    if let Some(s) = problem.solve() {
+        let w = BufferWriter::stdout(termcolor::ColorChoice::Auto);
+        s.color_fmt(w)?;
+    } else {
+        eprintln!("Unsolvable grid");
+    }
+    Ok(())
+
 }
