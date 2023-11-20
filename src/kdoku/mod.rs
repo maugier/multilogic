@@ -91,9 +91,15 @@ impl std::fmt::Display for Solution {
             for cell in line {
                 write!(f, "{}", cell.0)?;
             }
-            write!(f, "\n")?;
+            writeln!(f)?;
         }
         Ok(())
+    }
+}
+
+impl Default for BaseGrid {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -223,7 +229,7 @@ fn make_binary_constraint<F>(vars: &[[Var; 6]], op: F) -> Option<Vec<Vec<Lit>>>
     where F: Fn(u8,u8) -> bool
 {
 
-    let [v1, v2] = &vars[..] else { return None };
+    let [v1, v2] = vars else { return None };
 
     let mut terms = vec![];
 

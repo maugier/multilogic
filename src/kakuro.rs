@@ -45,7 +45,7 @@ impl Problem {
             for (i, cell) in cells.iter().enumerate() {
 
                 // Include cell in sum constraint
-                sum = sum.map(|s| solver.sum(&s,&cell));
+                sum = sum.map(|s| solver.sum(&s,cell));
                 sum.get_or_insert_with(|| cell.clone());
 
                 // Mutually exclusive with all other cells
@@ -65,7 +65,7 @@ impl Problem {
             .map(|cell| cell.map(|var| model.value(&var) ))
             .collect();
         */
-        Some(Solution(grid.map(|cell| cell.as_ref().map(|var| model.value(&var)))))
+        Some(Solution(grid.map(|cell| cell.as_ref().map(|var| model.value(var)))))
         
     }
 }
@@ -80,7 +80,7 @@ impl Display for Solution {
                     write!(f, " ")?;
                 }
             }
-            write!(f, "\n")?;
+            writeln!(f)?;
         }
         Ok(())
     }

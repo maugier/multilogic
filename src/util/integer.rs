@@ -48,6 +48,12 @@ pub struct Problem {
     inner:  CnfFormula,
 }
 
+impl Default for Problem {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Problem {
     pub fn new() -> Self {
         Self {
@@ -83,7 +89,7 @@ impl Problem {
 
         for (ax, av) in a.values() {
             for (bx, bv) in b.values() {
-                buffer.push([av.clone(), bv.clone(), r[ax+bx].clone()]);
+                buffer.push([*av, *bv, r[ax+bx]]);
             }
         }
 
@@ -99,7 +105,7 @@ impl Problem {
     }
 
     pub fn equals(&mut self, var: &Var, val: usize) {
-        self.inner.add_clause(&[var[val].clone()])
+        self.inner.add_clause(&[var[val]])
     }
 
     pub fn solve(&self) -> Option<Model> {

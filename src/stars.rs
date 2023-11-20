@@ -86,7 +86,7 @@ impl Problem {
         let m = solver.model()?;
         let solution = grid.map(|cell| m.contains(cell));
 
-        Some(Solution{ problem: &self, solution })
+        Some(Solution{ problem: self, solution })
 
     }
 }
@@ -160,7 +160,7 @@ mod color {
                     write!(buf, "{}", if *s {'*'} else {'.'})?;
                 }
                 buf.reset()?;
-                write!(buf, "\n")?;
+                writeln!(buf)?;
             }
             w.print(&buf)
         }

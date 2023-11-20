@@ -149,7 +149,7 @@ pub mod color {
                     write!(buf, "{}", match p { Some(k) => char::from_digit(*k as u32, 10).unwrap(), None => ' ' })?;
                 }
                 buf.reset()?;
-                write!(buf, "\n")?;
+                writeln!(buf)?;
             }
             w.print(&buf)
         }
