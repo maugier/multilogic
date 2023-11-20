@@ -18,4 +18,4 @@ Currently supports:
     - [ ] Hyper
     - [ ] Chaos
   - [ ] Tectonic
-  - [ ] Voisimage
+  - [X] Voisimage

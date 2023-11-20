@@ -48,6 +48,7 @@ impl Problem {
 
         sat.solve().expect("solver");
 
+
         let good: BTreeSet<_> = sat.model()?
             .into_iter()
             .filter(|l| l.is_positive())
@@ -65,7 +66,7 @@ impl std::fmt::Display for Problem {
         for line in self.0.lines() {
             for cell in line {
                 let c = match cell {
-                    None => ' ',
+                    None => '.',
                     Some(n) => char::from_digit(*n as u32, 10).unwrap(),
                 };
                 f.write_char(c)?;
@@ -120,11 +121,41 @@ impl std::fmt::Display for Solution {
     }
 }
 
-impl Solution {
-    pub fn display_compact(&self, _f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        todo!()
+pub mod color {
+
+    use termcolor::{BufferWriter, ColorSpec, Color, WriteColor};
+    use std::io::Write;
+
+    use super::*;
+
+    #[derive(Debug)]
+    pub struct Pretty<'a>(pub &'a Problem, pub &'a Solution);
+
+    impl Pretty<'_> {
+
+        pub fn color_fmt(&self, w: BufferWriter) -> Result<(), std::io::Error> {
+            let mut buf = w.buffer();
+            let scheme = |b| {if b { Color::White } else { Color::Black }};
+
+            for (ps, ss) in self.0.0.lines().zip(self.1.0.lines()) {
+                for (p, s) in ps.iter().zip(ss) {
+                    let mut color = ColorSpec::new();
+                    color.set_bold(true)
+                         .set_bg(Some(scheme(*s)))
+                         .set_fg(Some(scheme(!*s)));
+
+
+                    buf.set_color(&color)?;
+                    write!(buf, "{}", match p { Some(k) => char::from_digit(*k as u32, 10).unwrap(), None => ' ' })?;
+                }
+                buf.reset()?;
+                write!(buf, "\n")?;
+            }
+            w.print(&buf)
+        }
     }
 }
+
 
 #[cfg(test)]
 mod test {
@@ -136,6 +167,7 @@ mod test {
 
     fn solve(input: &str) {
         let p: Problem = input.parse().unwrap();
+        eprintln!("{:?}", p);
         p.solve().unwrap();
     }
 
@@ -144,6 +176,52 @@ mod test {
         let s = p.solve().unwrap();
         let out = format!("{}", s);
         assert_eq!(out, solution);
+    }
+
+    #[test]
+    fn all_empty() {
+        let p = "\
+...
+.0.
+...
+";
+        let s = "\
+░░░
+░░░
+░░░
+";
+        print(p, s);
+
+    }
+
+    #[test]
+    fn all_full() {
+        let p = "\
+...
+.9.
+...
+";
+        let s = "\
+███
+███
+███
+";
+        print(p, s);
+
+    }
+
+    #[test]
+    fn corner() {
+        let p = "\
+4.
+..
+";
+        let s = "\
+██
+██
+";
+        print(p, s);
+
     }
 
     mod small {
@@ -191,7 +269,7 @@ mod test {
     }
 
     mod large {
-
+        use super::Problem;
         const SAMPLE: &str = "\
 ....4......6....4..20......0.0.
 .4....4.0.6...1....2.0..0......
@@ -212,8 +290,14 @@ mod test {
 ..34...5..4..5.4.4.....85.2.5.5
 0...24.6.2.1...32..36...6......
 .0..0..4..0.0.0..00.......6875.
-.........0.........0105.3......
+.........0.........01.5.3......
 ";
+
+    #[test]
+    fn parse_print() {
+        let p: Problem = SAMPLE.parse().unwrap();
+        assert_eq!(p.to_string(), SAMPLE)
+    }
 
     const SOLUTION: &str = "";
 

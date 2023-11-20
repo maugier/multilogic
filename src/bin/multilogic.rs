@@ -2,7 +2,7 @@ use std::io::{stdin, Read};
 
 use multilogic::*;
 use clap::Parser;
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use termcolor::BufferWriter;
 
 #[derive(Parser)]
@@ -24,6 +24,7 @@ fn main() -> Result<()> {
     match Command::parse() {
         KDoku => kdoku(),
         Stars => stars(),
+        Voisimage => voisimage(),
         _ => panic!("game not yet implemented")
     }
 
@@ -57,6 +58,23 @@ fn stars() -> Result<()> {
     } else {
         eprintln!("Unsolvable grid");
     }
+    Ok(())
+
+}
+
+fn voisimage() -> Result<()> {
+    use voisimage::*;
+    let mut buf = vec![];
+    stdin().lock().read_to_end(&mut buf)?;
+    let buf = std::str::from_utf8(&buf)?;
+
+    let problem: Problem = buf.parse()?;
+
+    let solution = problem.solve()
+       .ok_or_else(|| anyhow!("unsolvable grid"))?;
+
+    let w = BufferWriter::stdout(termcolor::ColorChoice::Auto);
+    color::Pretty(&problem, &solution).color_fmt(w)?;
     Ok(())
 
 }
