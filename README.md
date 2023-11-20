@@ -11,6 +11,7 @@ Currently supports:
   - [ ] Logic
   - [ ] Pokus
   - [ ] Rikudo
+  - [ ] Stars
   - [ ] Sudoku
     - [ ] Classic
     - [ ] X

@@ -25,6 +25,10 @@ impl <T> Matrix<T> {
         Ok(Self { vec, stride: shape.1 })
     }
 
+    pub fn len(&self) -> usize {
+        self.vec.len()
+    }
+
     pub fn shape(&self) -> (usize, usize) {
         (self.vec.len() / self.stride, self.stride)
     }

@@ -4,7 +4,7 @@ use nom::{
     IResult,
     character::complete::one_of,
     bytes::complete::is_a,
-    multi::{separated_list1},
+    multi::separated_list1,
     Parser, sequence::{delimited, separated_pair},
 };
 
