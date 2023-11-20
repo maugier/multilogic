@@ -10,6 +10,12 @@ pub fn intersect<T: Ord + Copy>(a: RangeInclusive<T>, b: RangeInclusive<T>) -> R
     *start ..= *stop
 }
 
+pub fn choices(n: usize, k: usize) -> Vec<Vec<bool>> {
+    let mut r = vec![];
+    choose(n, k, |c| r.push(c.to_owned()));
+    r
+}
+
 pub fn choose(n: usize, k: usize, mut f: impl FnMut(&[bool])) {
     let mut acc = Vec::with_capacity(n);
     choose_acc(&mut acc, n, k, &mut f);
@@ -51,5 +57,11 @@ mod test {
         let mut choice: Vec<usize> = Vec::with_capacity(pair.len());
         choose(bound, 2, |ch| choice.push(ch.iter().enumerate().map(|(i,b)| if *b { 1 << i } else { 0 }).sum()));
         assert_eq!(pair, choice);
+    }
+
+    #[test]
+    fn choice_edge_cases() {
+        assert_eq!(choices(5,0), vec![vec![false, false, false, false, false]]);
+        assert_eq!(choices(5,5), vec![vec![true, true, true, true, true]]);
     }
 }

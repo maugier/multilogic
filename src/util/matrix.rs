@@ -136,4 +136,13 @@ mod test {
         assert_eq!(m[1][0], 3);
         assert_eq!(m[1][1], 4);
     }
+
+    #[test]
+    fn neighbors() {
+        let m = umat![(); (4,4)];
+        assert_eq!(m.neighbors((0,0)), vec![(0,0),(0,1),(1,0),(1,1)]);
+        assert_eq!(m.neighbors((0,2)), vec![(0,1),(0,2),(0,3), (1,1), (1,2), (1,3)]);
+        assert_eq!(m.neighbors((1,2)), vec![(0,1),(0,2),(0,3), (1,1), (1,2), (1,3), (2,1), (2,2), (2,3)]);
+        assert_eq!(m.neighbors((3,3)), vec![(2,2),(2,3),(3,2),(3,3)]);
+    }
 }
