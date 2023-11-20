@@ -1,7 +1,7 @@
 use std::{ops::Range, fmt::Display};
-use crate::solve::{util::MView, integer};
+use crate::util::{matrix::{Matrix, umat}, integer};
 
-use super::solve::integer::Var;
+use super::util::integer::Var;
 
 struct Constraint {
     vertical: bool,
@@ -11,14 +11,10 @@ struct Constraint {
 }
 
 pub struct Problem {
-    size: (usize, usize),
+    shape: (usize, usize),
     constraints: Vec<Constraint>,
 }
-
-pub struct Solution {
-    size: (usize, usize),
-    cells: Vec<Option<usize>>
-}
+pub struct Solution(Matrix<Option<usize>>);
 
 impl Constraint {
     fn cells(&self) -> impl Iterator<Item=(usize,usize)> + '_{
@@ -32,9 +28,8 @@ impl Constraint {
 impl Problem {
     pub fn solve(&self) -> Option<Solution> {
 
-        let size = self.size;
-        let mut cells: Vec<Option<Var>> = vec![None; size.0 * size.1];
-        let mut cellview = MView::new(&mut cells, self.size.1);
+        let shape = self.shape;
+        let mut grid: Matrix<Option<Var>> = umat![None; shape];
 
         let mut solver = integer::Problem::new();
 
@@ -44,7 +39,7 @@ impl Problem {
             let mut sum: Option<Var> = None;
 
             for (x,y) in constraint.cells() {
-                cells.push(cellview[x][y].get_or_insert_with(|| solver.new_var(1..=9)).clone());
+                cells.push(grid[x][y].get_or_insert_with(|| solver.new_var(1..=9)).clone());
             }
 
             for (i, cell) in cells.iter().enumerate() {
@@ -64,22 +59,22 @@ impl Problem {
 
         let model = solver.solve()?;
 
-        drop(cellview);
-
+        
+        /* 
         let cells = cells.into_iter()
             .map(|cell| cell.map(|var| model.value(&var) ))
             .collect();
-
-        Some(Solution { cells, size })
+        */
+        Some(Solution(grid.map(|cell| cell.as_ref().map(|var| model.value(&var)))))
         
     }
 }
 
 impl Display for Solution {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for line in 0..self.size.0 {
-            for column in 0..self.size.1 {
-                if let Some(v) = &self.cells[line*self.size.1 + column] {
+        for line in self.0.lines() {
+            for cell in line {
+                if let Some(v) = cell {
                     write!(f, "{}", v)?;
                 } else {
                     write!(f, " ")?;
@@ -94,6 +89,7 @@ impl Display for Solution {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::util::matrix::Matrix;
 
     #[test]
     fn tiny_kakuro() {
@@ -102,7 +98,7 @@ mod test {
         // 6 8 9
         
         let k = Problem {
-            size: (2, 3),
+            shape: (2, 3),
             constraints: vec![
                 Constraint { vertical: true, index: 0, range: 0..2, target: 7 },
                 Constraint { vertical: true, index: 1, range: 0..2, target: 10 },
@@ -113,8 +109,8 @@ mod test {
         };
 
         let s = k.solve().unwrap();
-        assert_eq!(&k.size, &s.size);
-        assert_eq!(&s.cells, &[Some(1),Some(2),Some(4),Some(6),Some(8),Some(9)]);
+        assert_eq!(k.shape, s.0.shape());
+        assert_eq!(s.0, Matrix::new(vec![Some(1),Some(2),Some(4),Some(6),Some(8),Some(9)], (2,3)).unwrap());
 
 
     }

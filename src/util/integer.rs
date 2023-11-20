@@ -1,7 +1,7 @@
 use std::ops::{Index, RangeInclusive};
 
 use varisat::{self, ExtendFormula, CnfFormula, Lit};
-use super::util::{DnfFormula, intersect};
+use super::{intersect, solve::DnfFormula};
 
 #[derive(Clone,Debug)]
 pub struct Var {

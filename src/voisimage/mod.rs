@@ -1,32 +1,26 @@
 use std::{collections::BTreeSet, str::FromStr, fmt::Write};
 
-use crate::solve::util::MView;
+use crate::util::matrix::{Matrix, ShapeError};
 
-use super::solve::util::{choose, DnfFormula};
+use super::util::{choose, solve::DnfFormula};
 use anyhow::{anyhow, bail};
-use varisat::{self, Var, Solver, ExtendFormula};
+use varisat::{Solver, ExtendFormula};
 
 
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
-pub struct Problem {
-    size: (usize, usize),
-    grid: Vec<Option<u8>>,
-}
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct Problem(Matrix<Option<u8>>);
 
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
-pub struct Solution {
-    size: (usize, usize),
-    grid: Vec<bool>
-}
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct Solution(Matrix<bool>);
 
 impl Problem {
-    pub fn new(size: (usize, usize), grid: Vec<Option<u8>>) -> Self {
-        Self { size, grid }
+    pub fn new(shape: (usize, usize), grid: Vec<Option<u8>>) -> Result<Self, ShapeError> {
+        Matrix::new(grid, shape).map(Self)
     }
 
     pub fn neighbors(&self, pos: (usize, usize)) -> Vec<(usize,usize)> {
         let (x,y) = pos;
-        let (h, w) = self.size;
+        let (h, w) = self.0.shape();
         let mut neighs = Vec::with_capacity(9);
 
         let mut row = |x| {
@@ -42,34 +36,31 @@ impl Problem {
     }
 
     pub fn solve(&self) -> Option<Solution> {
-        let size = self.size;
-        let (h,w) = size;
+        let shape = self.0.shape();
 
         let mut sat = Solver::new();
-        let mut cells: Vec<_> = sat.new_var_iter(h * w).collect();
-        let mv = MView::new(&mut cells, w);
+        let cells: Vec<_> = sat.new_var_iter(shape.0 * shape.1).collect();
+        let grid = Matrix::new(cells, shape).unwrap();
+        
+        for (x,y) in grid.indices() {
 
-        for x in 0..h {
-            for y in 0..w {
+            if let Some(k) = self.0[x][y] {
 
-                if let Some(k) = self.grid[x*w + y] {
+                let mut clause = vec![];
+                let neighs = self.neighbors((x,y));
 
-                    let mut clause = vec![];
-                    let neighs = self.neighbors((x,y));
+                choose(neighs.len(), k as usize, |bitmap| {
+                    let alt = neighs.iter()
+                        .zip(bitmap)
+                        .map(|(&(x,y), &b)| grid[x][y].lit(b))
+                        .collect::<Vec<_>>();
+                    clause.push(alt);
+                });
 
-                    choose(neighs.len(), k as usize, |bitmap| {
-                        let alt = neighs.iter()
-                            .zip(bitmap)
-                            .map(|(&(x,y), &b)| mv[x][y].lit(b))
-                            .collect::<Vec<_>>();
-                        clause.push(alt);
-                    });
-
-                    sat.add_dnf(clause);
-
-                }
+                sat.add_dnf(clause);
 
             }
+
         }
 
         sat.solve().expect("solver");
@@ -80,21 +71,17 @@ impl Problem {
             .map(|l| l.var())
             .collect();
 
-        let grid = (0..(h*w))
-            .map(|p| { good.contains(&cells[p])})
-            .collect();
+        let grid = grid.map(|var| good.contains(var));
 
-        Some(Solution { size, grid })
+        Some(Solution(grid))
     }
 }
 
 impl std::fmt::Display for Problem {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let (h,w) = self.size;
-        let mut cells = self.grid.iter();
-        for _ in 0..h {
-            for _ in 0..w {
-                let c = match cells.next().expect("invalid problem structure") {
+        for line in self.0.lines() {
+            for cell in line {
+                let c = match cell {
                     None => ' ',
                     Some(n) => char::from_digit(*n as u32, 10).unwrap(),
                 };
@@ -133,18 +120,16 @@ impl FromStr for Problem {
         let w = w.ok_or(anyhow!("Empty grid"))?;
 
 
-        Ok(Self::new((h,w), grid))
+        Ok(Self::new((h,w), grid)?)
 
     }
 }
 
 impl std::fmt::Display for Solution {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let (h,w) = self.size;
-        let mut cells = self.grid.iter();
-        for _ in 0..h {
-            for _ in 0..w {
-                f.write_char(if *cells.next().expect("invalid solution structure") { '█' } else { '░' })?;
+        for line in self.0.lines() {
+            for &cell in line {
+                f.write_char(if cell { '█' } else { '░' })?;
             }
             f.write_char('\n')?
         }
@@ -153,7 +138,7 @@ impl std::fmt::Display for Solution {
 }
 
 impl Solution {
-    fn display_compact(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    pub fn display_compact(&self, _f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         todo!()
     }
 }
@@ -179,7 +164,8 @@ mod test {
     }
 
     mod small {
-        use itertools::Itertools;
+
+        use crate::util::matrix::mat;
 
         use super::*;
         const PROBLEM_STRING: &str = "\
@@ -189,17 +175,11 @@ mod test {
 ";
 
         fn problem() -> Problem {
-            Problem {
-                size: (3,3),
-                grid: vec![2,4,3,3,5,3,2,3,1].into_iter().map(Some).collect_vec(),
-            }
+            Problem(mat![2,4,3; 3,5,3; 2,3,1].map(|i| Some(*i)))
         }
 
         fn solution() -> Solution {
-            Solution {
-                size: (3,3),
-                grid: vec![false, true, true, true, false, true, true, false, false],
-            }
+            Solution(mat![false, true, true; true, false, true; true, false, false])
         }
 
         const SOLUTION_STRING: &str = "\
