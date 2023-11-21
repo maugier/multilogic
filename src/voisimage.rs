@@ -167,7 +167,6 @@ mod test {
 
     fn solve(input: &str) {
         let p: Problem = input.parse().unwrap();
-        eprintln!("{:?}", p);
         p.solve().unwrap();
     }
 

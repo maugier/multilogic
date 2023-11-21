@@ -1,7 +1,13 @@
+//! A large number of logical games, by virtue of existing on paper, use 2-dimensional structures.
+//! This module implement packed matrices, without the overhead of supporting multiple dimensions.
+
 use std::ops::{Index, IndexMut};
 
 use thiserror::Error;
 
+/// A Matrix of dynamic size, with elements in `T`.
+/// Indexing exposes rows as slices. Individual elements of matrix `m`
+/// can be accessed with `m[x][y]`.
 #[derive(Clone,Debug,PartialEq,Eq)]
 pub struct Matrix<T> {
     stride: usize,
@@ -14,36 +20,44 @@ pub struct ShapeError;
 
 impl <T> Matrix<T> {
 
+    /// Create a new matrix from a vector of elements in row-major order.
+    /// Will fail if the length of `vec` doesn't match the requested shape.
     pub fn new(vec: Vec<T>, shape: (usize,usize)) -> Result<Self, ShapeError> {
         if vec.len() != shape.0 * shape.1 { return Err(ShapeError) }
         Ok(Self { vec, stride: shape.1 })
     }
 
+    /// Total number of elements in the matrix. Equal to `shape.0 * shape.1`
     pub fn len(&self) -> usize {
         self.vec.len()
     }
 
+    /// Shape of the matrix
     pub fn shape(&self) -> (usize, usize) {
         (self.vec.len() / self.stride, self.stride)
     }
 
+    /// Creates a new matrix of the same shape by applying a closure to every element
     pub fn map<U,F>(&self, f: F) -> Matrix<U>
         where F: FnMut(&T) -> U
     {
         Matrix { vec: self.vec.iter().map(f).collect(), stride: self.stride }
     }
 
+    /// Iterates over the matrix rows
     pub fn lines(&self) -> impl Iterator<Item=&[T]> + '_ {
         (0..self.vec.len())
             .step_by(self.stride)
             .map(|i| &self.vec[i..][..self.stride])
     }
 
+    /// Iterate over all the coordinate pairs in row-major order
     pub fn indices(&self) -> impl Iterator<Item=(usize,usize)> {
         let (h,w) = self.shape();
         (0..h).flat_map(move |x| (0..w).map(move |y| (x,y)))
     }
 
+    /// Lists all the neighbors of the given location, truncating at the edge.
     pub fn neighbors(&self, pos: (usize, usize)) -> Vec<(usize,usize)> {
         let (x,y) = pos;
         let (h, w) = self.shape();
@@ -61,6 +75,8 @@ impl <T> Matrix<T> {
         neighs
     }
 
+    /// Create a new matrix by applying in parallel an operation to every pair of elements from
+    /// two source matrices of identical shape.
     pub fn zip_with<U,V,F>(&self, other: &Matrix<U>, f: F) -> Result<Matrix<V>, ShapeError>
         where F: FnMut((&T, &U)) -> V
     {

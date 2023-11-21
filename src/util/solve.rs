@@ -1,6 +1,6 @@
 use varisat::{ExtendFormula, Lit, Var};
 
-use super::{choose, choice::Choose};
+use super::choice::Choose;
 
 pub trait DnfFormula: ExtendFormula {
 

@@ -8,11 +8,60 @@ use termcolor::BufferWriter;
 #[derive(Parser)]
 #[command()]
 enum Command {
+    /// Islands connected with a given number of bridges.
     Archipel,
+
+    /// Balanced squares of bits.
+    /// 
+    /// Bineros are square grids filled with 0 or 1, such that:
+    ///  - no three consecutive cells contain the same value
+    ///  - every row and every column has half 0 cells and half 1 cells.
+    /// 
+    /// Input: A grid of N lines of length N containing the characters `0`, `1` or ` `.
+    /// 
+    /// Output: A valid completion of the same grid, with all the spaces filled; or nothing.
     Binero,
+
+    /// Magic squares of pairs.
+    EulerSquare,
+
+    /// 3x3 matrices of unique single-digit numbers with known row and column sums.
     Fubuki,
+
+    /// Irregular grid of single-digit numbers, with known sums.
     Kakuro,
+
+    /// Grid of numbers with arithmetical constraints.
+    /// 
+    /// KDokus are 6x6 grids where every row and every column is a permutation
+    /// of the numbers 1-6. In addition, the grid is divided into irregular areas,
+    /// each associated with an operation (`+`,`-`,`*`,`/`) and a result, such that
+    /// the sum, product, difference or quotient of the cells in the area is equal to
+    /// the given result.
+    /// 
+    /// `-` and `/` operators can only be applied to areas containing exactly 2 cells.
+    /// 
+    /// Input: A list of area descriptions, one per line.
+    /// 
+    /// The contraints are in format: 7+ [(0,0),(0,1),(1,1)]
+    /// 
+    /// First comes the result, then the operation code, then a list of all
+    /// the cell coordinate pairs. Coordinates are in the 0-5 range.
+    /// 
+    /// Output: A solution to the grid, or nothing.
     KDoku,
+
+    /// Place stars on a colored grid.
+    /// 
+    /// Stars are N*N grids divided into N colored areas. The goal of the game is to place
+    /// N stars on the grid such that there is exactly one star per line, per column, and per
+    /// colored area.
+    /// 
+    /// Input: N lines containing N whitespace-separated integers in the range [0;N[.
+    /// The integer indicates the color of the cell.
+    /// 
+    /// Output: A N*N colored text grid for a valid solution, with star locations indicated by a `*` character;
+    /// or nothing.
     Stars,
     Sudoku,
     Tectonic,
