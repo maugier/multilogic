@@ -89,12 +89,26 @@ enum Command {
 fn main() -> Result<()> {
     use Command::*;
     match Command::parse() {
+        Binero => binero(),
         KDoku => kdoku(),
         Stars => stars(),
         Voisimage { box_drawing } => voisimage(box_drawing),
         _ => panic!("game not yet implemented")
     }
 
+}
+
+fn binero() -> Result<()> {
+    use binero::*;
+    let mut buf = vec![];
+    stdin().lock().read_to_end(&mut buf)?;
+    let p = std::str::from_utf8(&buf)?;
+    if let Some(s) = p.parse::<Problem>()?.solve() {
+        println!("{}", s);
+    } else {
+        eprintln!("No solution");
+    }
+    Ok(())
 }
 
 fn kdoku() -> Result<()> {

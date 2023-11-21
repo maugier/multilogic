@@ -5,7 +5,7 @@ A collection of solvers for various puzzle games.
 Currently supports:
   - [ ] Archipelago
   - [ ] Battleships
-  - [ ] Binero
+  - [X] Binero
   - [ ] Camping
   - [ ] Euler Square
   - [ ] Fences
