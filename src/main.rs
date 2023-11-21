@@ -65,7 +65,25 @@ enum Command {
     Stars,
     Sudoku,
     Tectonic,
-    Voisimage,
+
+    /// Paint a grid, from hints about local neighborhoods.
+    /// 
+    /// Voisimage is a rectangular grid of binary cells, with some cells containing a number. When the number
+    /// is present, it indicates the number of active adjacent cells, present cell included. The numbers are
+    /// in the range `0-9` (`0-6` on the edges, `0-4` in the corners)
+    /// 
+    /// Input: A rectangular grid of digits in the range `0-9` or the character
+    /// `.` for an empty cell.
+    /// 
+    /// Output: The same grid, with the cells colored according to a valid solution.
+    Voisimage {
+        /// Output using Unicode block drawing characters.
+        /// 
+        /// The default output mode prints the hints and colors the picture with ansi codes.
+        /// This mode hides the hints and makes it possible to copy/paste the picture.
+        #[arg(short, long)]
+        box_drawing: bool
+    }
 }
 
 fn main() -> Result<()> {
@@ -73,7 +91,7 @@ fn main() -> Result<()> {
     match Command::parse() {
         KDoku => kdoku(),
         Stars => stars(),
-        Voisimage => voisimage(),
+        Voisimage { box_drawing } => voisimage(box_drawing),
         _ => panic!("game not yet implemented")
     }
 
@@ -111,7 +129,7 @@ fn stars() -> Result<()> {
 
 }
 
-fn voisimage() -> Result<()> {
+fn voisimage(unicode: bool) -> Result<()> {
     use voisimage::*;
     let mut buf = vec![];
     stdin().lock().read_to_end(&mut buf)?;
@@ -122,8 +140,12 @@ fn voisimage() -> Result<()> {
     let solution = problem.solve()
        .ok_or_else(|| anyhow!("unsolvable grid"))?;
 
-    let w = BufferWriter::stdout(termcolor::ColorChoice::Auto);
-    color::Pretty(&problem, &solution).color_fmt(w)?;
-    Ok(())
+    if unicode {
+        println!("{}", solution);
+    } else {
+        let w = BufferWriter::stdout(termcolor::ColorChoice::Auto);
+        color::Pretty(&problem, &solution).color_fmt(w)?;
+    }
+        Ok(())
 
 }
