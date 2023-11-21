@@ -1,5 +1,6 @@
 use std::ops::{RangeInclusive, Range};
 
+pub mod choice;
 pub mod integer;
 pub mod solve;
 pub mod matrix;

@@ -1,4 +1,6 @@
-use varisat::{ExtendFormula, Lit};
+use varisat::{ExtendFormula, Lit, Var};
+
+use super::{choose, choice::Choose};
 
 pub trait DnfFormula: ExtendFormula {
 
@@ -34,7 +36,14 @@ pub trait DnfFormula: ExtendFormula {
 
         self.add_clause(&helpers);
 
-    }   
+    }
+
+    fn add_popcount(&mut self, vars: &[Var], k: usize) {
+        let clauses = Choose::new(vars.len(), k)
+            .map(|ch| ch.into_iter().zip(vars).map(|(b,v)| v.lit(b)));
+        self.add_dnf(clauses);
+    }
+
 }
 
 impl<T: ExtendFormula> DnfFormula for T {}

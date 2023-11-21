@@ -61,6 +61,19 @@ impl <T> Matrix<T> {
         neighs
     }
 
+    pub fn zip_with<U,V,F>(&self, other: &Matrix<U>, f: F) -> Result<Matrix<V>, ShapeError>
+        where F: FnMut((&T, &U)) -> V
+    {
+        if self.shape() != other.shape() {
+            return Err(ShapeError)
+        }
+
+        Ok(Matrix {
+            stride: self.stride,
+            vec: self.vec.iter().zip(&other.vec).map(f).collect(),
+        })
+    }
+
 }
 
 impl <T> Index<usize> for Matrix<T> {
